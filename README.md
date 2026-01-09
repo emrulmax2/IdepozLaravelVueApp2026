@@ -1,0 +1,2 @@
+# IdepozLaravelVueApp2026
+IdepozAppLatest
