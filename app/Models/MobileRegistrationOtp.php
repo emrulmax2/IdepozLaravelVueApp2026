@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MobileRegistrationOtp extends Model
 {
@@ -11,6 +12,7 @@ class MobileRegistrationOtp extends Model
 
     protected $fillable = [
         'name',
+        'country_phone_code_id',
         'phone',
         'code',
         'expires_at',
@@ -22,6 +24,11 @@ class MobileRegistrationOtp extends Model
         'expires_at' => 'datetime',
         'used_at' => 'datetime',
     ];
+
+    public function countryPhoneCode(): BelongsTo
+    {
+        return $this->belongsTo(CountryPhoneCode::class);
+    }
 
     public function hasExpired(): bool
     {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\CountryPhoneCode;
 use App\Models\MobileRegistrationOtp;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -25,10 +26,11 @@ class MobileRegistrationController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'regex:/^\+?[0-9]{8,15}$/'],
+            'country_phone_code_id' => ['required', 'integer'],
+            'phone' => ['required', 'string', 'min:4', 'max:20'],
         ]);
 
-        $phone = $validated['phone'];
+        [$countryCode, $phone] = $this->normalizePhoneInput($validated);
 
         if (User::where('phone', $phone)->exists()) {
             throw ValidationException::withMessages([
@@ -49,6 +51,7 @@ class MobileRegistrationController extends Controller
             ['phone' => $phone],
             [
                 'name' => $validated['name'],
+                'country_phone_code_id' => $countryCode->id,
                 'code' => Hash::make($otpValue),
                 'expires_at' => $expiresAt,
                 'attempts' => 0,
@@ -72,17 +75,20 @@ class MobileRegistrationController extends Controller
     public function verifyOtp(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'phone' => ['required', 'string'],
+            'country_phone_code_id' => ['required', 'integer'],
+            'phone' => ['required', 'string', 'min:4', 'max:20'],
             'otp' => ['required', 'digits:6'],
         ]);
 
-        if (User::where('phone', $validated['phone'])->exists()) {
+        [$countryCode, $phone] = $this->normalizePhoneInput($validated);
+
+        if (User::where('phone', $phone)->exists()) {
             throw ValidationException::withMessages([
                 'phone' => ['This phone number is already registered. Please sign in instead.'],
             ]);
         }
 
-        $otpRecord = MobileRegistrationOtp::where('phone', $validated['phone'])
+        $otpRecord = MobileRegistrationOtp::where('phone', $phone)
             ->whereNull('used_at')
             ->latest()
             ->first();
@@ -96,6 +102,12 @@ class MobileRegistrationController extends Controller
         if ($otpRecord->hasExpired()) {
             throw ValidationException::withMessages([
                 'otp' => ['The provided OTP has expired.'],
+            ]);
+        }
+
+        if ($otpRecord->country_phone_code_id && $otpRecord->country_phone_code_id !== $countryCode->id) {
+            throw ValidationException::withMessages([
+                'country_phone_code_id' => ['Use the same country code you used when requesting the OTP.'],
             ]);
         }
 
@@ -116,6 +128,7 @@ class MobileRegistrationController extends Controller
         $user = User::create([
             'name' => $otpRecord->name,
             'phone' => $otpRecord->phone,
+            'country_phone_code_id' => $otpRecord->country_phone_code_id ?: $countryCode->id,
             'email' => $this->buildPlaceholderEmail($otpRecord->phone),
             'password' => Str::password(),
         ]);
@@ -139,6 +152,7 @@ class MobileRegistrationController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'country_phone_code_id' => $user->country_phone_code_id,
                 'phone_verified_at' => $user->phone_verified_at,
                 'last_login_at' => $user->last_login_at,
             ],
@@ -156,6 +170,26 @@ class MobileRegistrationController extends Controller
         }
 
         RateLimiter::hit($key, $decaySeconds);
+    }
+
+    /**
+     * @return array{0: CountryPhoneCode, 1: string}
+     */
+    private function normalizePhoneInput(array $validated): array
+    {
+        $countryCode = CountryPhoneCode::query()
+            ->active()
+            ->find($validated['country_phone_code_id']);
+
+        if (! $countryCode) {
+            throw ValidationException::withMessages([
+                'country_phone_code_id' => ['The selected country code is not available.'],
+            ]);
+        }
+
+        $phone = $countryCode->normalizeNationalNumber($validated['phone']);
+
+        return [$countryCode, $phone];
     }
 
     private function otpThrottleKey(string $phone): string

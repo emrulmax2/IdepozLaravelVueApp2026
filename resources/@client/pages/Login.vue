@@ -4,19 +4,24 @@ import logoUrl from "@/assets/images/logo.svg";
 import illustrationUrl from "@/assets/images/illustration.svg";
 import { FormInput } from "@/components/Base/Form";
 import Button from "@/components/Base/Button";
+import PhoneNumberField from "@/components/PhoneNumberField.vue";
 import { useAuthStore } from "@/stores/auth";
-import { computed, onBeforeUnmount, ref } from "vue";
+import { usePhoneCodeStore } from "@/stores/phoneCodes";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Toastify from "toastify-js";
 import "@/assets/css/vendors/toastify.css";
 
 const authStore = useAuthStore();
+const phoneCodeStore = usePhoneCodeStore();
+phoneCodeStore.ensureLoaded().catch(() => undefined);
 const router = useRouter();
 const route = useRoute();
 
 type Step = "request" | "verify";
 
-const phone = ref(authStore.latestPhone || "");
+const phoneDigits = ref(authStore.latestPhoneDigits || "");
+const selectedCountryCodeId = ref<number | null>(authStore.latestPhoneCodeId);
 const otp = ref("");
 const activeStep = ref<Step>(authStore.otpExpiresAt ? "verify" : "request");
 const loading = ref(false);
@@ -29,8 +34,44 @@ const destination = computed(
   () => (route.query.redirect as string | undefined) || "/"
 );
 
-const canRequestOtp = computed(() => phone.value.replace(/\D/g, "").length >= 8);
+const selectedCode = computed(() =>
+  phoneCodeStore.byId(selectedCountryCodeId.value) ?? null
+);
+
+watch(selectedCode, (code) => {
+  if (!code) {
+    return;
+  }
+
+  if (phoneDigits.value.length > code.max_nsn_length) {
+    phoneDigits.value = phoneDigits.value.slice(0, code.max_nsn_length);
+  }
+});
+
+const canRequestOtp = computed(() => {
+  if (!selectedCode.value || !selectedCountryCodeId.value) {
+    return false;
+  }
+
+  const length = phoneDigits.value.length;
+  return (
+    length >= selectedCode.value.min_nsn_length &&
+    length <= selectedCode.value.max_nsn_length
+  );
+});
 const canVerifyOtp = computed(() => otp.value.length === 6);
+
+const formattedPhone = computed(() => {
+  if (!selectedCode.value) {
+    return phoneDigits.value;
+  }
+
+  if (!phoneDigits.value) {
+    return selectedCode.value.dial_code;
+  }
+
+  return `${selectedCode.value.dial_code} ${phoneDigits.value}`;
+});
 
 const formattedCountdown = computed(() => {
   const minutes = Math.floor(countdown.value / 60)
@@ -89,12 +130,20 @@ const handleRequestOtp = async () => {
     return;
   }
 
+  if (!selectedCode.value || !selectedCountryCodeId.value) {
+    phoneError.value = "Select a country code before requesting an OTP.";
+    return;
+  }
+
   phoneError.value = null;
   loading.value = true;
 
   try {
-    const normalizedPhone = phone.value.replace(/\s+/g, "");
-    const response = await authStore.requestOtp(normalizedPhone);
+    const response = await authStore.requestOtp({
+      countryPhoneCodeId: selectedCountryCodeId.value,
+      dialCode: selectedCode.value.dial_code,
+      phone: phoneDigits.value,
+    });
 
     activeStep.value = "verify";
     otp.value = "";
@@ -123,7 +172,16 @@ const handleVerifyOtp = async () => {
   loading.value = true;
 
   try {
-    await authStore.verifyOtp(phone.value.replace(/\s+/g, ""), otp.value);
+    if (!selectedCode.value || !selectedCountryCodeId.value) {
+      throw new Error("Missing country code selection.");
+    }
+
+    await authStore.verifyOtp({
+      countryPhoneCodeId: selectedCountryCodeId.value,
+      dialCode: selectedCode.value.dial_code,
+      phone: phoneDigits.value,
+      otp: otp.value,
+    });
     notify("You are now signed in.");
     router.push(destination.value);
   } catch (error) {
@@ -207,22 +265,12 @@ onBeforeUnmount(() => {
 
             <div class="mt-8 space-y-6 intro-x">
               <div v-if="activeStep === 'request'">
-                <label class="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                  Mobile Number
-                </label>
-                <FormInput
-                  v-model="phone"
-                  type="tel"
-                  inputmode="tel"
-                  autocomplete="tel"
-                  maxlength="18"
-                  class="block px-4 py-3 mt-2 login__input min-w-full xl:min-w-[350px]"
-                  placeholder="e.g. +15551234567"
+                <PhoneNumberField
+                  v-model="phoneDigits"
+                  v-model:countryCodeId="selectedCountryCodeId"
+                  :error="phoneError"
+                  hint="Enter the rest of your number without the country code."
                 />
-                <p v-if="phoneError" class="mt-2 text-sm text-danger">{{ phoneError }}</p>
-                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  Use your full international format so we can deliver the OTP quickly.
-                </p>
               </div>
 
               <div v-else>
@@ -232,7 +280,7 @@ onBeforeUnmount(() => {
                       Code sent to
                     </p>
                     <p class="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                      {{ phone }}
+                      {{ formattedPhone }}
                     </p>
                   </div>
                   <button

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'phone',
+        'country_phone_code_id',
         'password',
     ];
 
@@ -45,4 +46,9 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function countryPhoneCode()
+    {
+        return $this->belongsTo(CountryPhoneCode::class);
+    }
 }

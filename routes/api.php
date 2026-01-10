@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\MobileOtpController;
 use App\Http\Controllers\Auth\MobileRegistrationController;
+use App\Http\Controllers\Lookup\CountryPhoneCodeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('/phone-codes', CountryPhoneCodeController::class);
 
 Route::prefix('auth')->group(function () {
     Route::post('/request-otp', [MobileOtpController::class, 'requestOtp']);

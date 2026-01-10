@@ -12,6 +12,7 @@ class MobileOtp extends Model
 
     protected $fillable = [
         'user_id',
+        'country_phone_code_id',
         'phone',
         'code',
         'expires_at',
@@ -27,6 +28,11 @@ class MobileOtp extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function countryPhoneCode(): BelongsTo
+    {
+        return $this->belongsTo(CountryPhoneCode::class);
     }
 
     public function hasExpired(): bool
