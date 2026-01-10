@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CountryPhoneCode;
 use App\Models\MobileRegistrationOtp;
 use App\Models\User;
+use App\Services\Sms\AwsSnsSmsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class MobileRegistrationController extends Controller
 {
@@ -21,6 +23,10 @@ class MobileRegistrationController extends Controller
     private const REQUEST_RATE_LIMIT_DECAY = 900;
     private const RESEND_COOLDOWN_SECONDS = 45;
     private const VERIFY_MAX_ATTEMPTS = 5;
+
+    public function __construct(private AwsSnsSmsService $smsService)
+    {
+    }
 
     public function requestOtp(Request $request): JsonResponse
     {
@@ -58,6 +64,19 @@ class MobileRegistrationController extends Controller
                 'used_at' => null,
             ]
         );
+
+        try {
+            $this->smsService->sendOtp($phone, $otpValue, self::OTP_TTL_MINUTES);
+        } catch (Throwable $throwable) {
+            Log::error('Failed to send registration OTP via AWS SNS', [
+                'phone' => $phone,
+                'error' => $throwable->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'phone' => ['We could not send the OTP right now. Please try again shortly.'],
+            ]);
+        }
 
         Log::info('Mobile registration OTP generated', [
             'phone' => $phone,

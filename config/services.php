@@ -31,4 +31,13 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'sns' => [
+        'key' => env('AWS_SNS_ACCESS_KEY_ID', env('AWS_ACCESS_KEY_ID')),
+        'secret' => env('AWS_SNS_SECRET_ACCESS_KEY', env('AWS_SECRET_ACCESS_KEY')),
+        'region' => env('AWS_SNS_REGION', env('AWS_DEFAULT_REGION', 'us-east-1')),
+        'sender_id' => env('AWS_SNS_SENDER_ID'),
+        'sms_type' => env('AWS_SNS_SMS_TYPE', 'Transactional'),
+        'enabled' => env('AWS_SNS_ENABLED', false),
+    ],
+
 ];
