@@ -235,17 +235,17 @@ onBeforeUnmount(() => {
         <!-- BEGIN: Login Info -->
         <div class="flex-col hidden min-h-screen xl:flex">
           <a href="" class="flex items-center pt-5 -intro-x">
-            <img alt="Midone" class="w-6" :src="logoUrl" />
-            <span class="ml-3 text-lg text-white"> Midone </span>
+            <img alt="Company" class="w-6" :src="logoUrl" />
+            <span class="ml-3 text-lg text-white"> Company </span>
           </a>
           <div class="my-auto">
             <img alt="OTP Login" class="w-1/2 -mt-16 -intro-x" :src="illustrationUrl" />
             <div class="mt-10 text-4xl font-medium leading-tight text-white -intro-x">
-              Secure OTP login <br />
+              Secure Login <br />
               keeps your account protected.
             </div>
             <div class="mt-5 text-lg text-white -intro-x text-opacity-70 dark:text-slate-400">
-              Sign in with your mobile number and a one-time passcode delivered in seconds.
+              This is most Secure Login Method for User.
             </div>
           </div>
         </div>
@@ -257,10 +257,10 @@ onBeforeUnmount(() => {
             class="w-full px-5 py-8 mx-auto my-auto bg-white rounded-md shadow-md xl:ml-20 dark:bg-darkmode-600 xl:bg-transparent sm:px-8 xl:p-0 xl:shadow-none sm:w-3/4 lg:w-2/4 xl:w-auto"
           >
             <h2 class="text-2xl font-bold text-center intro-x xl:text-3xl xl:text-left">
-              Mobile OTP Login
+              Login with Mobile
             </h2>
             <div class="mt-2 text-center intro-x text-slate-400 xl:hidden">
-              Enter your mobile number to receive a secure one-time passcode.
+              Enter your registered mobile number to receive a secure one-time passcode.
             </div>
 
             <div class="mt-8 space-y-6 intro-x">

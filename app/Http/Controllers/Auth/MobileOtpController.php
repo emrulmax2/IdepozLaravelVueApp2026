@@ -7,6 +7,7 @@ use App\Models\CountryPhoneCode;
 use App\Models\MobileOtp;
 use App\Models\User;
 use App\Services\Sms\AwsSnsSmsService;
+use App\Services\Sms\BulkSmsBdService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,7 +24,10 @@ class MobileOtpController extends Controller
     private const RESEND_COOLDOWN_SECONDS = 30;
     private const VERIFY_MAX_ATTEMPTS = 5;
 
-    public function __construct(private AwsSnsSmsService $smsService)
+    public function __construct(
+        private AwsSnsSmsService $smsService,
+        private BulkSmsBdService $bulkSmsBdService
+    )
     {
     }
 
@@ -63,7 +67,7 @@ class MobileOtpController extends Controller
         ]);
 
         try {
-            $this->smsService->sendOtp($phone, $otpValue, self::OTP_TTL_MINUTES);
+            $this->dispatchOtp($countryCode, $phone, $otpValue);
         } catch (Throwable $throwable) {
             Log::error('Failed to send login OTP via AWS SNS', [
                 'phone' => $phone,
@@ -228,5 +232,16 @@ class MobileOtpController extends Controller
     private function generateOtp(): string
     {
         return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
+
+    private function dispatchOtp(CountryPhoneCode $countryCode, string $phone, string $otpValue): void
+    {
+        if ($this->bulkSmsBdService->canHandleCountry($countryCode->iso_code)) {
+            $this->bulkSmsBdService->sendOtp($phone, $otpValue, self::OTP_TTL_MINUTES);
+
+            return;
+        }
+
+        $this->smsService->sendOtp($phone, $otpValue, self::OTP_TTL_MINUTES);
     }
 }
