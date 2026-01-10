@@ -5,6 +5,7 @@ import TopBar from "@/components/Themes/Icewall/TopBar";
 import MobileMenu from "@/components/MobileMenu";
 import _ from "lodash";
 import { useMenuStore } from "@/stores/menu";
+import { useAuthStore } from "@/stores/auth";
 import {
   type ProvideForceActiveMenu,
   forceActiveMenu,
@@ -14,10 +15,11 @@ import {
   linkTo,
 } from "./top-menu";
 import Lucide from "@/components/Base/Lucide";
-import { watch, reactive, computed, onMounted, provide } from "vue";
+import { watch, reactive, computed, onMounted, provide, ref } from "vue";
 
 const route: Route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 let formattedMenu = reactive<Array<FormattedMenu | "divider">>([]);
 const setFormattedMenu = (
   computedFormattedMenu: Array<FormattedMenu | "divider">
@@ -46,6 +48,23 @@ watch(
 onMounted(() => {
   setFormattedMenu(menu.value);
 });
+
+const loggingOut = ref(false);
+const handleLogout = async () => {
+  if (loggingOut.value) {
+    return;
+  }
+
+  loggingOut.value = true;
+  try {
+    await authStore.logout();
+  } catch (error) {
+    console.error("Failed to logout", error);
+  } finally {
+    loggingOut.value = false;
+    router.push({ name: "login" });
+  }
+};
 </script>
 
 <template>
@@ -176,6 +195,24 @@ onMounted(() => {
               </li>
             </ul>
           </template>
+        </li>
+        <li>
+          <a
+            href="#"
+            class="top-menu"
+            @click="(event: MouseEvent) => {
+              event.preventDefault();
+              handleLogout();
+            }"
+          >
+            <div class="top-menu__icon">
+              <Lucide icon="ToggleRight" />
+            </div>
+            <div class="top-menu__title">
+              <span v-if="!loggingOut">Logout</span>
+              <span v-else>Logging out...</span>
+            </div>
+          </a>
         </li>
       </ul>
     </nav>

@@ -8,6 +8,8 @@ import { Menu, Popover } from "@/components/Base/Headless";
 import fakerData from "@/utils/faker";
 import _ from "lodash";
 import { TransitionRoot } from "@headlessui/vue";
+import { useAuthStore } from "@/stores/auth";
+import { useRouter } from "vue-router";
 
 const searchDropdown = ref(false);
 const showSearchDropdown = () => {
@@ -15,6 +17,26 @@ const showSearchDropdown = () => {
 };
 const hideSearchDropdown = () => {
   searchDropdown.value = false;
+};
+
+const authStore = useAuthStore();
+const router = useRouter();
+const loggingOut = ref(false);
+
+const handleLogout = async () => {
+  if (loggingOut.value) {
+    return;
+  }
+
+  loggingOut.value = true;
+  try {
+    await authStore.logout();
+  } catch (error) {
+    console.error("Failed to logout", error);
+  } finally {
+    loggingOut.value = false;
+    router.push({ name: "login" });
+  }
 };
 </script>
 
@@ -230,8 +252,14 @@ const hideSearchDropdown = () => {
             <Lucide icon="HelpCircle" class="w-4 h-4 mr-2" /> Help
           </Menu.Item>
           <Menu.Divider class="bg-white/[0.08]" />
-          <Menu.Item class="hover:bg-white/5">
-            <Lucide icon="ToggleRight" class="w-4 h-4 mr-2" /> Logout
+          <Menu.Item
+            class="hover:bg-white/5"
+            as="button"
+            @click="handleLogout"
+          >
+            <Lucide icon="ToggleRight" class="w-4 h-4 mr-2" />
+            <span v-if="!loggingOut">Logout</span>
+            <span v-else>Logging out...</span>
           </Menu.Item>
         </Menu.Items>
       </Menu>

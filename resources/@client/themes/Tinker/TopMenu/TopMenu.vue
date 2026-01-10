@@ -6,6 +6,7 @@ import MobileMenu from "@/components/MobileMenu";
 import fakerData from "@/utils/faker";
 import _ from "lodash";
 import { useMenuStore } from "@/stores/menu";
+import { useAuthStore } from "@/stores/auth";
 import {
   type ProvideForceActiveMenu,
   forceActiveMenu,
@@ -30,6 +31,7 @@ const hideSearchDropdown = () => {
 };
 const route: Route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 let formattedMenu = reactive<Array<FormattedMenu | "divider">>([]);
 const setFormattedMenu = (
   computedFormattedMenu: Array<FormattedMenu | "divider">
@@ -58,6 +60,23 @@ watch(
 onMounted(() => {
   setFormattedMenu(menu.value);
 });
+
+const loggingOut = ref(false);
+const handleLogout = async () => {
+  if (loggingOut.value) {
+    return;
+  }
+
+  loggingOut.value = true;
+  try {
+    await authStore.logout();
+  } catch (error) {
+    console.error("Failed to logout", error);
+  } finally {
+    loggingOut.value = false;
+    router.push({ name: "login" });
+  }
+};
 </script>
 
 <template>
@@ -281,8 +300,14 @@ onMounted(() => {
               <Lucide icon="HelpCircle" class="w-4 h-4 mr-2" /> Help
             </Menu.Item>
             <Menu.Divider class="bg-white/[0.08]" />
-            <Menu.Item class="hover:bg-white/5">
-              <Lucide icon="ToggleRight" class="w-4 h-4 mr-2" /> Logout
+            <Menu.Item
+              class="hover:bg-white/5"
+              as="button"
+              @click="handleLogout"
+            >
+              <Lucide icon="ToggleRight" class="w-4 h-4 mr-2" />
+              <span v-if="!loggingOut">Logout</span>
+              <span v-else>Logging out...</span>
             </Menu.Item>
           </Menu.Items>
         </Menu>
