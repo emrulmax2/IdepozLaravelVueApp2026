@@ -232,7 +232,7 @@ const handleLogout = async () => {
           <Lucide icon="HelpCircle" class="w-4 h-4 mr-2" /> Help
         </Menu.Item>
         <Menu.Divider class="bg-white/[0.08]" />
-        <Menu.Item class="hover:bg-white/5" as="button" @click="handleLogout">
+        <Menu.Item class="hover:bg-white/5 w-full" as="button" @click="handleLogout">
           <Lucide icon="ToggleRight" class="w-4 h-4 mr-2" />
           <span v-if="!loggingOut">Logout</span>
           <span v-else>Logging out...</span>

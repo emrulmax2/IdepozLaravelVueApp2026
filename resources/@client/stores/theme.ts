@@ -100,7 +100,7 @@ export const getTheme = (search?: {
       return (
         item.name === searchValues.name && item.layout === searchValues.layout
       );
-    })[0] || themes[0]
+    })[0] || themes[5]
   );
 };
 
@@ -109,22 +109,22 @@ export const useThemeStore = defineStore("theme", {
     themeValue: {
       name:
         localStorage.getItem("theme") === null
-          ? themes[0].name
+          ? themes[5].name
           : getTheme().name,
       layout:
         localStorage.getItem("layout") === null
-          ? themes[0].layout
+          ? themes[5].layout
           : getTheme().layout,
     },
   }),
   getters: {
     theme(state) {
       if (localStorage.getItem("theme") === null) {
-        localStorage.setItem("theme", "rubick");
+        localStorage.setItem("theme", "icewall");
       }
 
       if (localStorage.getItem("layout") === null) {
-        localStorage.setItem("layout", "side-menu");
+        localStorage.setItem("layout", "top-menu");
       }
 
       return state.themeValue;

@@ -14,24 +14,28 @@ interface ColorSchemeState {
   colorSchemeValue: ColorSchemes;
 }
 
-const getColorScheme = () => {
+const DEFAULT_COLOR_SCHEME: ColorSchemes = "theme-3";
+
+const getColorScheme = (): ColorSchemes => {
   const colorScheme = localStorage.getItem("colorScheme");
-  return colorSchemes.filter((item, key) => {
-    return item === colorScheme;
-  })[0];
+
+  if (!colorScheme) {
+    return DEFAULT_COLOR_SCHEME;
+  }
+
+  return (
+    colorSchemes.find((item) => item === colorScheme) ?? DEFAULT_COLOR_SCHEME
+  );
 };
 
 export const useColorSchemeStore = defineStore("colorScheme", {
   state: (): ColorSchemeState => ({
-    colorSchemeValue:
-      localStorage.getItem("colorScheme") === null
-        ? "default"
-        : getColorScheme(),
+    colorSchemeValue: getColorScheme(),
   }),
   getters: {
     colorScheme(state) {
       if (localStorage.getItem("colorScheme") === null) {
-        localStorage.setItem("colorScheme", "default");
+        localStorage.setItem("colorScheme", DEFAULT_COLOR_SCHEME);
       }
 
       return state.colorSchemeValue;

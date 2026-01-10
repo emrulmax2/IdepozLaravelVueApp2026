@@ -253,7 +253,7 @@ const handleLogout = async () => {
           </Menu.Item>
           <Menu.Divider class="bg-white/[0.08]" />
           <Menu.Item
-            class="hover:bg-white/5"
+            class="hover:bg-white/5 w-full"
             as="button"
             @click="handleLogout"
           >
